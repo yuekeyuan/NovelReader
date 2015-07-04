@@ -1,51 +1,23 @@
 {
     "preInit": "true", 
+    "deskTop": {
+        "width": 1366, 
+        "height": 768
+    }, 
     "mainUi": {
-        "width": 683, 
-        "head": {
-            "width": 683, 
-            "background-color": [
-                170, 
-                170, 
-                170, 
-                170
-            ], 
-            "y": 0, 
-            "x": 0, 
-            "closeButton": {
-                "width": 30, 
-                "hover-color": [
-                    170, 
-                    170, 
-                    100, 
-                    170
-                ], 
-                "background-color": [
-                    100, 
-                    170, 
-                    170, 
-                    170
-                ], 
-                "x": 0, 
-                "y": 0, 
-                "click-color": [
-                    170, 
-                    100, 
-                    170, 
-                    170
-                ], 
-                "height": 30
-            }, 
-            "height": 30
-        }, 
-        "background-color": [
-            200, 
-            200, 
-            200, 
-            200
-        ], 
+        "y": 0, 
+        "x": 0, 
         "menu": {
-            "width": 0, 
+            "y": 30, 
+            "x": 593, 
+            "height": 90, 
+            "press-color": [
+                127, 
+                127, 
+                127, 
+                250
+            ], 
+            "width": 90, 
             "hover-color": [
                 127, 
                 127, 
@@ -57,28 +29,13 @@
                 127, 
                 127, 
                 127
-            ], 
-            "x": 0, 
-            "y": 0, 
-            "press-color": [
-                127, 
-                127, 
-                127, 
-                250
-            ], 
-            "height": 0
+            ]
         }, 
         "foot": {
-            "width": 683, 
-            "background-color": [
-                170, 
-                170, 
-                170, 
-                170
-            ], 
             "y": 354, 
             "x": 0, 
             "closeButton": {
+                "width": 30, 
                 "click-color": [
                     170, 
                     170, 
@@ -91,23 +48,134 @@
                     100, 
                     170
                 ], 
-                "height": 30, 
                 "background-color": [
                     170, 
                     160, 
                     160, 
                     150
                 ], 
-                "width": 30
+                "height": 30
             }, 
-            "height": 30
+            "height": 30, 
+            "width": 683, 
+            "background-color": [
+                170, 
+                170, 
+                170, 
+                170
+            ]
         }, 
-        "x": 0, 
         "height": 384, 
-        "y": 0
-    }, 
-    "deskTop": {
-        "width": 1366, 
-        "height": 768
+        "body": {
+            "y": 30, 
+            "x": 0, 
+            "font-family": "\u7039\u5b29\u7d8b", 
+            "height": 354, 
+            "width": 683, 
+            "font-size": 20, 
+            "background-color": [
+                255, 
+                255, 
+                255, 
+                200
+            ], 
+            "font-color": [
+                0, 
+                0, 
+                0, 
+                255
+            ]
+        }, 
+        "width": 683, 
+        "head": {
+            "y": 0, 
+            "x": 0, 
+            "maxminButton": {
+                "y": 0, 
+                "click-color": [
+                    170, 
+                    100, 
+                    170, 
+                    170
+                ], 
+                "hover-color": [
+                    170, 
+                    170, 
+                    100, 
+                    170
+                ], 
+                "x": 623, 
+                "width": 30, 
+                "height": 30, 
+                "background-color": [
+                    100, 
+                    170, 
+                    170, 
+                    170
+                ]
+            }, 
+            "closeButton": {
+                "y": 0, 
+                "click-color": [
+                    170, 
+                    100, 
+                    170, 
+                    170
+                ], 
+                "hover-color": [
+                    170, 
+                    170, 
+                    100, 
+                    170
+                ], 
+                "x": 653, 
+                "width": 30, 
+                "height": 30, 
+                "background-color": [
+                    100, 
+                    170, 
+                    170, 
+                    170
+                ]
+            }, 
+            "height": 30, 
+            "width": 683, 
+            "settingButton": {
+                "y": 0, 
+                "click-color": [
+                    170, 
+                    100, 
+                    170, 
+                    170
+                ], 
+                "hover-color": [
+                    170, 
+                    170, 
+                    100, 
+                    170
+                ], 
+                "x": 593, 
+                "width": 30, 
+                "height": 30, 
+                "background-color": [
+                    100, 
+                    170, 
+                    170, 
+                    170
+                ]
+            }, 
+            "background-color": [
+                170, 
+                170, 
+                170, 
+                170
+            ]
+        }, 
+        "background-color": [
+            200, 
+            200, 
+            200, 
+            200
+        ]
     }
 }

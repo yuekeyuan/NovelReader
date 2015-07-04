@@ -13,13 +13,14 @@ class MainUI(QtGui.QWidget):
 
     def initUI(self):
         self.setFixedSize(self.config["mainUi"]["width"], self.config["mainUi"]["height"])
-        self.createHeader()
         self.createBody()
         self.createHeader()
         self.createFooter()
-        self.header.move(0,0)
-        self.body.move(self.config["mainUi"]["head"]["x"], self.config["mainUi"]["head"]["y"])
+        self.createMenu()
+        self.header.move(self.config["mainUi"]["head"]["x"], self.config["mainUi"]["head"]["y"])
+        self.body.move(self.config["mainUi"]["body"]["x"], self.config["mainUi"]["body"]["y"])
         self.footer.move(self.config["mainUi"]["foot"]["x"], self.config["mainUi"]["foot"]["y"])
+        self.menu.move(self.config["mainUi"]["menu"]["x"], self.config["mainUi"]["menu"]["y"])
     def preInitConfig(self):
         f = open("config.json", "r")
         self.config = json.load(f)
@@ -35,16 +36,41 @@ class MainUI(QtGui.QWidget):
             self.config["mainUi"]["y"] = 0
             self.config["mainUi"]["width"] = int(self.config["deskTop"]["width"] /2 )
             self.config["mainUi"]["height"] = int(self.config["deskTop"]["height"] / 2)
-            #head
+            ##head
             self.config["mainUi"]["head"]["x"] = 0
             self.config["mainUi"]["head"]["y"] = 0
             self.config["mainUi"]["head"]["width"] = self.config["mainUi"]["width"]
             self.config["mainUi"]["head"]["height"] = 30
-            #foot
+            ####closeButton
+            self.config["mainUi"]["head"]["closeButton"]["width"] = 30
+            self.config["mainUi"]["head"]["closeButton"]["height"] = 30
+            self.config["mainUi"]["head"]["closeButton"]["x"] = self.config["mainUi"]["head"]["width"] - self.config["mainUi"]["head"]["closeButton"]["height"]
+            self.config["mainUi"]["head"]["closeButton"]["y"] = 0
+            ####maxminButton
+            self.config["mainUi"]["head"]["maxminButton"]["width"] = 30
+            self.config["mainUi"]["head"]["maxminButton"]["height"] = 30
+            self.config["mainUi"]["head"]["maxminButton"]["x"] = self.config["mainUi"]["head"]["width"] - self.config["mainUi"]["head"]["closeButton"]["height"] * 2
+            self.config["mainUi"]["head"]["maxminButton"]["y"] = 0
+            ####settingButton
+            self.config["mainUi"]["head"]["settingButton"]["width"] = 30
+            self.config["mainUi"]["head"]["settingButton"]["height"] = 30
+            self.config["mainUi"]["head"]["settingButton"]["x"] = self.config["mainUi"]["head"]["width"] - self.config["mainUi"]["head"]["closeButton"]["height"] * 3
+            self.config["mainUi"]["head"]["settingButton"]["y"] = 0
+            ##foot
             self.config["mainUi"]["foot"]["x"] = 0
             self.config["mainUi"]["foot"]["y"] = self.config["mainUi"]["height"] - self.config["mainUi"]["foot"]["height"]
             self.config["mainUi"]["foot"]["width"] = self.config["mainUi"]["head"]["width"]
             self.config["mainUi"]["foot"]["height"] = self.config["mainUi"]["head"]["height"]
+            ##menu
+            self.config["mainUi"]["menu"]["x"] = self.config["mainUi"]["head"]["width"] - self.config["mainUi"]["head"]["closeButton"]["height"] * 3
+            self.config["mainUi"]["menu"]["y"] = 30
+            self.config["mainUi"]["menu"]["width"] = 90
+            self.config["mainUi"]["menu"]["height"] = 90
+            ##body
+            self.config["mainUi"]["body"]["x"] = 0
+            self.config["mainUi"]["body"]["y"] = self.config["mainUi"]["head"]["height"]
+            self.config["mainUi"]["body"]["width"] = self.config["mainUi"]["width"]
+            self.config["mainUi"]["body"]["height"] = self.config["mainUi"]["height"] - self.config["mainUi"]["head"]["height"]
         f.close()
         f = open("config.json", "w")
         json.dump(self.config, f, indent=4)
@@ -67,10 +93,14 @@ class MainUI(QtGui.QWidget):
         self.header = Header(self.config["mainUi"]["head"], self)
 
     def createBody(self):
-        self.body = Body(None, self)
+        self.body = Body(self.config["mainUi"]["body"], self)
+        self.body.setHtml("<h1>hello world</h1><br><h1>this is yuekeyuan</h1>")
 
     def createFooter(self):
         self.footer = Foot(self.config["mainUi"]["head"], self)
+
+    def createMenu(self):
+        self.menu = Menu(self.config["mainUi"]["menu"], self)
 
 class Header(QtGui.QWidget):
     def __init__(self, j = None, parent = None):
@@ -81,17 +111,11 @@ class Header(QtGui.QWidget):
     def initUi(self):
         self.setFixedSize(self.config["width"], self.config["height"])
         self.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Fixed)
-        self.createCloseButton()
         layout = QtGui.QHBoxLayout(self)
         layout.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTop)
         layout.setMargin(0)
         layout.setSpacing(0)
-        layout.addWidget(self.closeButton)
-        self.setLayout(layout)
-
-    def createCloseButton(self):
         self.closeButton = Button(self.config["closeButton"], self)
-
     def paintEvent(self, QPaintEvent):
         painter = QtGui.QPainter(self)
         color = QtGui.QColor(self.config["background-color"][0],\
@@ -115,35 +139,57 @@ class Header(QtGui.QWidget):
         if self.isPressed:
             self.parent().move(QMouseEvent.globalPos() - self.originPos)
 
-class Body(QtGui.QWidget):
-    """
-        对body 进行初始化，嗯，现在采用 label 对每一行进行一个填充？ 使用 textArea 进行填充? 使用其他模型进行填充？
-    """
-    def __init__(self, j,parent = None):
+class Body(QtGui.QTextBrowser):
+    def __init__(self, j, parent=None):
+        """
+        看！在这里有一个坑货，我调试了半天，没搞定的 透明度问题，它来一个bug，就啥事都解决了，
+        那么问题来了，是Qt 到 pyQt的问题呢？还是原来的Api的问题呢？ (下面的注释保留，以后再看)
+        :param j:
+        :param parent:
+        :return:
+        """
         super(Body, self).__init__(parent)
         self.config = j
-        self.initUi()
+        #self.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
+        #palette = self.palette()
+        #palette.setColor(QtGui.QPalette.All | QPalette.Background, QtGui.QColor(0x00,0xff,0x00,0x00))
+        #self.setPalette(palette)
+        #self.setAutoFillBackground(True)
+        self.setStyleSheet("Body{border:none;background-color:rgb(122,0,0,0.5)}")
+        self.setFixedSize(self.config["width"], self.config["height"])
 
     def initUi(self):
-        label = QtGui.QLabel()
-        label.setText("""\
-from PyQt4 import QtGui, QtCore, Qt
-import sys
-from MainHeader import MainHeader
-from MainBody import MainBody
-from SideBar import Sidebar
-class Constants():
-    col = 5
-    row = 5
-    pageSize = 5
-    labelSize = (20,20)
-        """)
-        layout = QtGui.QHBoxLayout()
-        layout.addWidget(label)
-        self.setLayout(layout)
-
-    def paintEvent(self, QPaintEvent):
         pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class Foot(QtGui.QWidget):
     def __init__(self, j = None, parent = None):
@@ -154,14 +200,8 @@ class Foot(QtGui.QWidget):
     def initUi(self):
         self.setFixedSize(self.config["width"], self.config["height"])
         self.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Fixed)
-        #self.createCloseButton()
-        layout = QtGui.QHBoxLayout(self)
-        layout.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTop)
-        layout.setMargin(0)
-        layout.setSpacing(0)
-        #layout.addWidget(self.closeButton)
-        self.setLayout(layout)
-
+        self.maxminButton = Button(self.config["maxminButton"], self)
+        self.settingButton = Button(self.config["settingButton"], self)
     def createCloseButton(self):
         self.closeButton = QtGui.QPushButton(self)
         self.closeButton.setStyleSheet("QPushButton{border:none; background-color:rgb(200,200,200)} QPushButton:hover{border:none; background-color:rgb(0,200,200)}")
@@ -175,9 +215,30 @@ class Foot(QtGui.QWidget):
             self.config["background-color"][3])
         painter.fillRect(self.rect(), color)
 
-class Menu():
+class Menu(QtGui.QWidget):
     def __init__(self, j, parent =None):
         super(Menu, self).__init__(parent)
+        self.config = j
+        self.setFixedSize(self.config["width"], self.config["height"])
+        self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        self.initUi()
+
+    def initUi(self):
+        menuClose = Menu.MenuItem(self)
+
+    def paintEvent(self, QPaintEvent):
+        painter = QtGui.QPainter(self)
+        painter.fillRect(self.rect(), QtCore.Qt.red)
+
+    class MenuItem(QtGui.QWidget):
+        def __init__(self, parent = None):
+            super(Menu.MenuItem, self).__init__(parent)
+            self.setFixedSize(100,50)
+            self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+
+        def paintEvent(self, QPaintEvent):
+            painter = QtGui.QPainter(self)
+            painter.fillRect(self.rect(), QtCore.Qt.blue)
 
 class Button(QtGui.QPushButton):
     def __init__(self, j, parent = None):
@@ -186,6 +247,7 @@ class Button(QtGui.QPushButton):
         self.isPressed = 0x00  #00,10
         self.isEntered = 0x00  #00,01
         self.setFixedSize(self.config["width"], self.config["height"])
+        self.move(self.config["x"], self.config["y"])
         self.initColor()
 
     def initColor(self):
