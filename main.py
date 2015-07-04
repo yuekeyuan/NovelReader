@@ -1,6 +1,6 @@
 #coding=utf-8
 from PyQt4 import QtGui, QtCore
-from PyQt4.QtGui import QPalette
+from BodyLayer import *
 import json, os, sys
 class MainUI(QtGui.QWidget):
     config = None
@@ -21,6 +21,8 @@ class MainUI(QtGui.QWidget):
         self.body.move(self.config["mainUi"]["body"]["x"], self.config["mainUi"]["body"]["y"])
         self.footer.move(self.config["mainUi"]["foot"]["x"], self.config["mainUi"]["foot"]["y"])
         self.menu.move(self.config["mainUi"]["menu"]["x"], self.config["mainUi"]["menu"]["y"])
+        self.menu.hide()
+
     def preInitConfig(self):
         f = open("config.json", "r")
         self.config = json.load(f)
@@ -94,7 +96,6 @@ class MainUI(QtGui.QWidget):
 
     def createBody(self):
         self.body = Body(self.config["mainUi"]["body"], self)
-        self.body.setHtml("<h1>hello world</h1><br><h1>this is yuekeyuan</h1>")
 
     def createFooter(self):
         self.footer = Foot(self.config["mainUi"]["head"], self)
@@ -116,6 +117,11 @@ class Header(QtGui.QWidget):
         layout.setMargin(0)
         layout.setSpacing(0)
         self.closeButton = Button(self.config["closeButton"], self)
+        self.closeButton.clicked.connect(self.printhello)
+
+    def printhello(self, *args, **kwargs):
+        print("hello world")
+
     def paintEvent(self, QPaintEvent):
         painter = QtGui.QPainter(self)
         color = QtGui.QColor(self.config["background-color"][0],\
@@ -138,16 +144,32 @@ class Header(QtGui.QWidget):
     def mouseMoveEvent(self, QMouseEvent):
         if self.isPressed:
             self.parent().move(QMouseEvent.globalPos() - self.originPos)
+            print("moved!")
 
+class Body(QtGui.QWidget):
+
+    def __init__(self, j, parent = None):
+        super(Body, self).__init__(parent)
+        self.config = j
+        self.initUi()
+
+    def initUi(self):
+        self.setFixedSize(self.config["width"], self.config["height"])
+        body = TextLayer(self.config, self)
+        body.move(0,0)
+
+        mask = MaskLayer(self.config, self)
+        mask.move(0, 0)
+
+
+    def paintEvent(self, QPaintEvent):
+        painter = QtGui.QPainter(self)
+        color = QtGui.QColor(255,0,0,50)
+        painter.fillRect(self.rect(), color)
+
+"""
 class Body(QtGui.QTextBrowser):
     def __init__(self, j, parent=None):
-        """
-        看！在这里有一个坑货，我调试了半天，没搞定的 透明度问题，它来一个bug，就啥事都解决了，
-        那么问题来了，是Qt 到 pyQt的问题呢？还是原来的Api的问题呢？ (下面的注释保留，以后再看)
-        :param j:
-        :param parent:
-        :return:
-        """
         super(Body, self).__init__(parent)
         self.config = j
         #self.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
@@ -157,39 +179,25 @@ class Body(QtGui.QTextBrowser):
         #self.setAutoFillBackground(True)
         self.setStyleSheet("Body{border:none;background-color:rgb(122,0,0,0.5)}")
         self.setFixedSize(self.config["width"], self.config["height"])
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.initSettings()
+        self.initUi()
+
+    def initSettings(self):
+        font = self.font()
+        font.setPointSize(20)
+        self.setFont(font)
 
     def initUi(self):
-        pass
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        file = open("README.md", encoding="utf-8")
+        a = file.readlines()
+        string = ""
+        for i in a:
+            string = string + i + "\n"
+        self.setText(string)
+"""
 
 class Foot(QtGui.QWidget):
     def __init__(self, j = None, parent = None):
@@ -207,12 +215,13 @@ class Foot(QtGui.QWidget):
         self.closeButton.setStyleSheet("QPushButton{border:none; background-color:rgb(200,200,200)} QPushButton:hover{border:none; background-color:rgb(0,200,200)}")
         self.closeButton.setFixedSize(self.config["closeButton"]["width"], self.config["closeButton"]["height"])
 
-    def paintEvent(self, QPaintEvent):
+    def paintEvent1(self, QPaintEvent):
         painter = QtGui.QPainter(self)
         color = QtGui.QColor(self.config["background-color"][0],\
             self.config["background-color"][1],\
             self.config["background-color"][2],\
             self.config["background-color"][3])
+
         painter.fillRect(self.rect(), color)
 
 class Menu(QtGui.QWidget):
@@ -291,10 +300,12 @@ class Button(QtGui.QPushButton):
 
     def mouseReleaseEvent(self, *args, **kwargs):
         self.isPressed = 0x00
+        self.clicked.emit(True)
         self.update()
 
 if __name__ == "__main__":
     App = QtGui.QApplication(sys.argv)
+    QtGui.QFontDatabase.addApplicationFont("./font/Cousine-Bold.ttf")
     ui = MainUI()
     ui.show()
     App.exec()
