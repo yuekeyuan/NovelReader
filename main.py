@@ -22,6 +22,7 @@ class MainUI(QtGui.QWidget):
         self.footer.move(self.config["mainUi"]["foot"]["x"], self.config["mainUi"]["foot"]["y"])
         self.menu.move(self.config["mainUi"]["menu"]["x"], self.config["mainUi"]["menu"]["y"])
         self.menu.hide()
+        self.footer.hide()
 
     def preInitConfig(self):
         f = open("config.json", "r")
