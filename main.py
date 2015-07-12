@@ -1,8 +1,13 @@
 #coding=utf-8
-from PyQt4 import QtGui, QtCore
+from PyQt4 import QtGui, QtCore, Qt
 from BodyLayer import *
 import json, os, sys
 class MainUI(QtGui.QWidget):
+
+    MAX_SIZE = 1
+    MIN_SIZE = 2
+    MID_SIZE = 3
+
     config = None
     def __init__(self, parent = None):
         super(MainUI, self).__init__(parent, QtCore.Qt.FramelessWindowHint)
@@ -104,6 +109,28 @@ class MainUI(QtGui.QWidget):
     def createMenu(self):
         self.menu = Menu(self.config["mainUi"]["menu"], self)
 
+    def changeAppSize(self, sizeType):
+        if sizeType == self.MAX_SIZE:
+            pass
+        elif sizeType == self.MID_SIZE:
+            pass
+        else:
+            pass
+
+    def keyReleaseEvent(self, QKeyEvent):
+        event = (QtGui.QKeyEvent)(QKeyEvent)
+        key = event.key()
+        if key == QtCore.Qt.Key_Escape:
+            sys.exit(0)
+        elif key == QtCore.Qt.Key_Up:
+            print("up")
+        elif key == QtCore.Qt.Key_Down:
+            print("down")
+        elif key == QtCore.Qt.Key_Left:
+            self.body.body.previousPage()
+        elif key == QtCore.Qt.Key_Right:
+            self.body.body.nextPage()
+
 class Header(QtGui.QWidget):
     def __init__(self, j = None, parent = None):
         super(Header, self).__init__(parent)
@@ -118,6 +145,7 @@ class Header(QtGui.QWidget):
         layout.setMargin(0)
         layout.setSpacing(0)
         self.closeButton = Button(self.config["closeButton"], self)
+        self.closeButton.setStyleSheet("Button{background:url(close.png)}")
         self.closeButton.clicked.connect(self.printhello)
 
     def printhello(self, *args, **kwargs):
@@ -145,7 +173,6 @@ class Header(QtGui.QWidget):
     def mouseMoveEvent(self, QMouseEvent):
         if self.isPressed:
             self.parent().move(QMouseEvent.globalPos() - self.originPos)
-            print("moved!")
 
 class Body(QtGui.QWidget):
 
@@ -156,11 +183,14 @@ class Body(QtGui.QWidget):
 
     def initUi(self):
         self.setFixedSize(self.config["width"], self.config["height"])
-        body = TextLayer(self.config, self)
-        body.move(0,0)
+        self.body = TextLayer(self.config, self)
+        self.body.move(0,0)
 
-        mask = MaskLayer(self.config, self)
-        mask.move(0, 0)
+        self.info = InfoLayer(self.config, self)
+        self.info.move(0,0)
+
+        self.mask = MaskLayer(self.config, self)
+        self.mask.move(0, 0)
 
 
     def paintEvent(self, QPaintEvent):
@@ -168,42 +198,12 @@ class Body(QtGui.QWidget):
         color = QtGui.QColor(255,0,0,50)
         painter.fillRect(self.rect(), color)
 
-"""
-class Body(QtGui.QTextBrowser):
-    def __init__(self, j, parent=None):
-        super(Body, self).__init__(parent)
-        self.config = j
-        #self.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
-        #palette = self.palette()
-        #palette.setColor(QtGui.QPalette.All | QPalette.Background, QtGui.QColor(0x00,0xff,0x00,0x00))
-        #self.setPalette(palette)
-        #self.setAutoFillBackground(True)
-        self.setStyleSheet("Body{border:none;background-color:rgb(122,0,0,0.5)}")
-        self.setFixedSize(self.config["width"], self.config["height"])
-        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.initSettings()
-        self.initUi()
-
-    def initSettings(self):
-        font = self.font()
-        font.setPointSize(20)
-        self.setFont(font)
-
-    def initUi(self):
-
-
-        file = open("README.md", encoding="utf-8")
-        a = file.readlines()
-        string = ""
-        for i in a:
-            string = string + i + "\n"
-        self.setText(string)
-"""
-
 class Foot(QtGui.QWidget):
     def __init__(self, j = None, parent = None):
         super(Foot, self).__init__(parent)
         self.config = j
+        self.posX = self.config["x"]
+        self.posY = self.config["y"] + self.config["height"]
         self.initUi()
 
     def initUi(self):
@@ -211,19 +211,43 @@ class Foot(QtGui.QWidget):
         self.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Fixed)
         self.maxminButton = Button(self.config["maxminButton"], self)
         self.settingButton = Button(self.config["settingButton"], self)
+
     def createCloseButton(self):
         self.closeButton = QtGui.QPushButton(self)
         self.closeButton.setStyleSheet("QPushButton{border:none; background-color:rgb(200,200,200)} QPushButton:hover{border:none; background-color:rgb(0,200,200)}")
         self.closeButton.setFixedSize(self.config["closeButton"]["width"], self.config["closeButton"]["height"])
 
-    def paintEvent1(self, QPaintEvent):
+    def paintEvent(self, QPaintEvent):
         painter = QtGui.QPainter(self)
         color = QtGui.QColor(self.config["background-color"][0],\
             self.config["background-color"][1],\
             self.config["background-color"][2],\
             self.config["background-color"][3])
-
         painter.fillRect(self.rect(), color)
+
+    direction = 0 #-1 0 1
+    signal = 0
+    timer = None
+
+    def slide(self):
+        if self.direction == -1:
+            if self.posY < self.config["height"]:
+                self.posY = self.posY - 1
+            else:
+                self.direction = 0
+        if self.direction == 1:
+            if self.posY > self.rect().height():
+                self.posY = self.posY +1
+            else:
+                self.direction = 0
+        if self.direction != 0:
+            self.timer = threading.Timer(0.05, self.slide)
+
+    def slideSignal(self, direction):
+        self.direction = direction
+        if self.direction != 0:
+            self.timer.cancel()
+            self.timer = threading.Timer(0.05, self.slide)
 
 class Menu(QtGui.QWidget):
     def __init__(self, j, parent =None):

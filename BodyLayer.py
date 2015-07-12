@@ -1,34 +1,78 @@
 from PyQt4 import QtCore, QtGui
+import threading
 
+class FileReaderInterface():
+    def nextPage(self):
+        pass
+    def previousPage(self):
+        pass
+    def leftSlide(self):
+        pass
+    def rightSlide(self):
+        pass
 
-class TextLayer(QtGui.QTextBrowser):
+class TextLayer(QtGui.QTextBrowser, FileReaderInterface):
     def __init__(self, j, parent=None):
         super(TextLayer, self).__init__(parent)
         self.config = j
         self.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
-#       palette = self.palette()
-#       palette.setColor(QtGui.QPalette.All | QPalette.Background, QtGui.QColor(0x00,0xff,0x00,0x00))
-#       self.setPalette(palette)
-#       self.setAutoFillBackground(True)
-        self.setStyleSheet("TextLayer{border:none;background-color:rgba(0,0,0,0)}")
-        self.setFixedSize(self.config["width"], self.config["height"])
-        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.initSettings()
         self.initUi()
 
     def initSettings(self):
+        self.setContentsMargins(0, 0, 0, 0)
         font = self.font()
-        font.setPointSize(20)
+        font.setPointSize(14)
         self.setFont(font)
 
+        palette = self.palette()
+        palette.setBrush(QtGui.QPalette.Background, QtGui.QBrush(QtCore.Qt.NoBrush))
+        self.setPalette(palette)
+
+        self.setFixedSize(self.config["width"], self.config["height"])
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setStyleSheet("TextLayer{background:rgb(0,0,0); border:none; padding:0 0;}")
+
     def initUi(self):
-        file = open("README.md", encoding="utf-8")
+        file = open("main.py", encoding="utf-8")
         a = file.readlines()
         string = ""
         for i in a:
-            string = string + i + "\n"
+            string = string + i
         self.setText(string)
 
+    line = 4
+    def nextPage(self):
+        if self.line >= self.verticalScrollBar().maximum():
+            self.parent().info.setInfo("this is the end of file", 2)
+            return
+        font = self.font()
+        matrix = QtGui.QFontMetrics(font)
+        print("max: ", self.verticalScrollBar().maximum(), "min,", self.verticalScrollBar().minimum())
+        height = self.rect().height() - self.rect().height() % matrix.lineSpacing()
+        self.line = self.line + height
+
+        self.verticalScrollBar().setValue(self.line)
+        print("line space", matrix.lineSpacing())
+        print(self.line)
+
+    def previousPage(self):
+        if self.line <= 0:
+            self.parent().info.setInfo("this is the head of file", 2)
+            return
+        font = self.font()
+        matrix = QtGui.QFontMetrics(font)
+        height = self.rect().height() - self.rect().height() % matrix.lineSpacing()
+        self.line = self.line - height
+
+        self.verticalScrollBar().setValue(self.line)
+        print(self.line)
+
+    def leftSlide(self):
+        pass
+
+    def rightSlide(self):
+        pass
 
 class MaskLayer(QtGui.QWidget):
     def __init__(self, j, parent=None):
@@ -81,3 +125,76 @@ class MaskLayer(QtGui.QWidget):
     def doChange(self):
         self.setCursor(QtCore.Qt.PointingHandCursor)
         self.update()
+
+class InfoLayer(QtGui.QWidget):
+
+    INFO_LONG_SHOW   = 3000
+    INFO_MIDDLE_SHOW = 1500
+    INFO_SHORT_SHOW  = 1000
+
+    def __init__(self, j, parent=None):
+        super(InfoLayer, self).__init__(parent)
+        self.config = j
+
+        self.timer = None
+        self.alpha = 0
+        self.state = 0
+        self.infoString = ""
+        self.isShow = False
+        self.initUi()
+
+    def initUi(self):
+        self.setFixedSize(self.config["width"], self.config["height"])
+
+    def paintEvent(self, QPaintEvent):
+        if self.isShow:
+            painter = QtGui.QPainter(self)
+            color   = QtGui.QColor(0, 0, 0, 0)
+            painter.fillRect(self.rect(), color)
+
+            font = self.font()
+            metrix = QtGui.QFontMetrics(font)
+            h = metrix.height()
+            w = metrix.width(self.infoString)
+            x = (self.config["width"] - w) /2
+            y = (self.config["height"]*3/2 - h)/2
+            path = QtGui.QPainterPath()
+            path.addRoundedRect(x, y, w + 30, h + 10 , 3, 3)
+            painter.fillPath(path, QtGui.QBrush(QtGui.QColor(212,200,200,self.alpha)))
+            painter.setPen(QtGui.QColor(0, 0, 0, self.alpha))
+            painter.drawText(QtCore.QPointF(x + 15, y + 15), self.infoString)
+
+    def setInfo(self, string, time):
+        self.infoString = string
+        self.isShow = True
+        if self.timer != None:
+            self.timer.cancel()
+        self.showInfo(0.01,time,0.01)
+
+    def showInfo(self, uptime, equaltime, downTime):
+        print(self.alpha)
+        if self.alpha >= 230 and self.state == 0:
+            print("this happen ....................................")
+            self.state = 1
+            self.timer = threading.Timer(equaltime, self.showInfo, [uptime, equaltime, downTime])
+            self.timer.start()
+            return
+
+        if self.alpha < 255 and self.state == 0:
+            self.alpha = self.alpha + 10
+            self.update()
+            self.timer = threading.Timer(uptime, self.showInfo, [uptime, equaltime, downTime])
+            self.timer.start()
+            return
+
+        if self.alpha > 0 and self.state == 1:
+            self.alpha = self.alpha - 10
+            self.update()
+            self.timer = threading.Timer(downTime, self.showInfo, [uptime, equaltime, downTime])
+            self.timer.start()
+        else:
+            self.alpha = 0
+            self.state = 0
+            self.isShow = False
+            self.timer.cancel()
+            self.timer = None
