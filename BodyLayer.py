@@ -17,7 +17,7 @@ class TextLayer(QtGui.QTextBrowser, FileReaderInterface):
         self.config = j
         self.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
         self.initSettings()
-        self.initUi()
+        self.initUi("README.md")
 
     def initSettings(self):
         self.setContentsMargins(0, 0, 0, 0)
@@ -33,13 +33,17 @@ class TextLayer(QtGui.QTextBrowser, FileReaderInterface):
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setStyleSheet("TextLayer{background:rgb(0,0,0); border:none; padding:0 0;}")
 
-    def initUi(self):
-        file = open("main.py", encoding="utf-8")
+    def initUi(self, fileName):
+        file = open(fileName, encoding="utf-8")
+        print(self.parent().parent().setTitle(fileName))
         a = file.readlines()
         string = ""
         for i in a:
             string = string + i
         self.setText(string)
+
+    def openFile(self, fileName):
+        self.initUi(fileName)
 
     line = 4
     def nextPage(self):
@@ -64,7 +68,6 @@ class TextLayer(QtGui.QTextBrowser, FileReaderInterface):
         matrix = QtGui.QFontMetrics(font)
         height = self.rect().height() - self.rect().height() % matrix.lineSpacing()
         self.line = self.line - height
-
         self.verticalScrollBar().setValue(self.line)
         print(self.line)
 
@@ -74,16 +77,29 @@ class TextLayer(QtGui.QTextBrowser, FileReaderInterface):
     def rightSlide(self):
         pass
 
+    def getCurrentValue(self):
+        return self.verticalScrollBar().value()
+
 class MaskLayer(QtGui.QWidget):
     def __init__(self, j, parent=None):
         super(MaskLayer, self).__init__(parent)
         self.config = j
+        self.isDrag = False
         self.entered = 0
         self.pressed = 0
         self.horizon = 0   # 左0,右1
         self.vertical = 0  # 上0 下1
         self.leftImage = QtGui.QImage("gallery_button_left.png")
         self.rightImage = QtGui.QImage("gallery_button_right.png")
+
+        self.originY = 0
+        self.MoveY = 0
+        self.pageY = 0
+
+        #self.cur_move = QtGui.QCursor(QtGui.QPixmap("cur_move.png"))
+        #self.cur_static = QtGui.QCursor(QtGui.QPixmap("cur_static.png"))
+        #self.setMouseTracking(True)
+        #self.setCursor(self.cur_static)
         self.initUi()
 
     def initUi(self):
@@ -94,10 +110,11 @@ class MaskLayer(QtGui.QWidget):
         painter = QtGui.QPainter(self)
         color   = QtGui.QColor(0, 0, 0, 1)
         painter.fillRect(self.rect(), color)
-        if self.entered and self.horizon:
-            painter.drawImage(self.config["width"]-self.rightImage.width(), self.config["height"]/2 - self.rightImage.height() / 2, self.rightImage)
-        elif self.entered and self.horizon == 0:
-            painter.drawImage(0, self.config["height"]/2 - self.leftImage.height() / 2, self.leftImage)
+
+        #if self.entered and self.horizon:
+        #    painter.drawImage(self.config["width"]-self.rightImage.width(), self.config["height"]/2 - self.rightImage.height() / 2, self.rightImage)
+        #elif self.entered and self.horizon == 0:
+        #    painter.drawImage(0, self.config["height"]/2 - self.leftImage.height() / 2, self.leftImage)
 
     def enterEvent(self, QEvent):
         self.entered = 1
@@ -109,17 +126,30 @@ class MaskLayer(QtGui.QWidget):
         print("left")
         self.update()
 
+    def mousePressEvent(self, QMouseEvent):
+        self.isDrag = True
+        self.pageY = self.parent().body.getCurrentValue()
+        print(self.pageY)
+        self.originY = QMouseEvent.pos().y()
+
+    def mouseReleaseEvent(self, QMouseEvent):
+        self.isDrag = False
+
     def mouseMoveEvent(self, event):
+
+        if self.isDrag:
+            self.moveY = event.pos().y() - self.originY + self.pageY
+            print(self.originY)
+            self.parent().body.verticalScrollBar().setValue(self.moveY)
+
         if event.pos().x() - self.rect().width()/2 < 0:  #左
             self.horizon = 0
         else:
             self.horizon = 1
-
         if event.pos().y() - self.rect().height()/2 < 0:  #上
             self.vertical = 0
         else:
             self.vertical = 1
-
         self.doChange()
 
     def doChange(self):

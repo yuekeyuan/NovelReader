@@ -12,6 +12,10 @@ class MainUI(QtGui.QWidget):
     def __init__(self, parent = None):
         super(MainUI, self).__init__(parent, QtCore.Qt.FramelessWindowHint)
         self.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
+        self.header = None
+        self.body = None
+        self.footer = None
+        self.title = None
         self.preInitConfig()
         self.initConfigInfo()
         self.initUI()
@@ -26,7 +30,6 @@ class MainUI(QtGui.QWidget):
         self.body.move(self.config["mainUi"]["body"]["x"], self.config["mainUi"]["body"]["y"])
         self.footer.move(self.config["mainUi"]["foot"]["x"], self.config["mainUi"]["foot"]["y"])
         self.menu.move(self.config["mainUi"]["menu"]["x"], self.config["mainUi"]["menu"]["y"])
-        self.menu.hide()
         self.footer.hide()
 
     def preInitConfig(self):
@@ -99,7 +102,7 @@ class MainUI(QtGui.QWidget):
 
     def createHeader(self):
         self.header = Header(self.config["mainUi"]["head"], self)
-
+        self.header.setTitile(self.title)
     def createBody(self):
         self.body = Body(self.config["mainUi"]["body"], self)
 
@@ -131,6 +134,17 @@ class MainUI(QtGui.QWidget):
         elif key == QtCore.Qt.Key_Right:
             self.body.body.nextPage()
 
+    def setTitle(self, title):
+        self.title = title
+        if self.header != None:
+            self.header.setTitle(title)
+
+    def showMenu(self, status=True):
+        if status:
+            self.menu.show()
+        else:
+            self.menu.hide()
+
 class Header(QtGui.QWidget):
     def __init__(self, j = None, parent = None):
         super(Header, self).__init__(parent)
@@ -139,17 +153,18 @@ class Header(QtGui.QWidget):
 
     def initUi(self):
         self.setFixedSize(self.config["width"], self.config["height"])
-        self.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Fixed)
+        self.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
         layout = QtGui.QHBoxLayout(self)
+        self.titleLabel = QtGui.QLabel()
+        self.titleLabel.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         layout.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTop)
         layout.setMargin(0)
         layout.setSpacing(0)
-        self.closeButton = Button(self.config["closeButton"], self)
-        self.closeButton.setStyleSheet("Button{background:url(close.png)}")
-        self.closeButton.clicked.connect(self.printhello)
-
-    def printhello(self, *args, **kwargs):
-        print("hello world")
+        layout.addWidget(self.titleLabel)
+        self.setLayout(layout)
+        self.closeButton = CloseButton(self.config["closeButton"], self)
+        #self.menuButton = MenuButton(self.config["settingButton"], self)
+        self.closeButton.clicked.connect(App.quit)
 
     def paintEvent(self, QPaintEvent):
         painter = QtGui.QPainter(self)
@@ -165,14 +180,20 @@ class Header(QtGui.QWidget):
         self.isPressed = True
         self.setCursor(QtCore.Qt.SizeAllCursor)
         self.originPos = QMouseEvent.pos()
+        print("mousePressed")
 
     def mouseReleaseEvent(self, QMouseEvent):
         self.isPressed = False
         self.setCursor(QtCore.Qt.ArrowCursor)
+        print("mouseRelease")
 
     def mouseMoveEvent(self, QMouseEvent):
         if self.isPressed:
             self.parent().move(QMouseEvent.globalPos() - self.originPos)
+
+    def setTitile(self, title=""):
+        self.title = "<h1 style='font-color:black;text-align:center;margin:0 auto;'>" + title + "</h1>"
+        self.titleLabel.setText(self.title)
 
 class Body(QtGui.QWidget):
 
@@ -264,6 +285,10 @@ class Menu(QtGui.QWidget):
         painter = QtGui.QPainter(self)
         painter.fillRect(self.rect(), QtCore.Qt.red)
 
+    def setMenuglobalMenuPosition(self, position):
+        #TODO: this is to place the menu on the widget(here we can put it just under the menuButton,so we can do not write code here)
+        pass
+
     class MenuItem(QtGui.QWidget):
         def __init__(self, parent = None):
             super(Menu.MenuItem, self).__init__(parent)
@@ -327,6 +352,65 @@ class Button(QtGui.QPushButton):
         self.isPressed = 0x00
         self.clicked.emit(True)
         self.update()
+
+class CloseButton(Button):
+    def __init__(self, j, parent=None):
+        super(CloseButton, self).__init__(j, parent)
+        self.image = QtGui.QImage("close.png")
+    def paintEvent(self, QPaintEvent):
+        painter = QtGui.QPainter(self)
+        painter.drawImage(self.image.rect(), self.image)
+        super(CloseButton, self).paintEvent(QPaintEvent)
+
+class MenuButton(Button):
+    def __init__(self, j, parent=None):
+        super(MenuButton, self).__init__(j, parent)
+        self.upImage = QtGui.QImage("up.png")
+        self.downImage = QtGui.QImage("down.png")
+
+        self.isMouseEntered = False
+        self.isMousePressed = False
+        self.isFocusIn      = False
+        self.isOutMenuFocusIn = False
+
+    def paintEvent(self, QPaintEvent):
+        painter = QtGui.QPainter(self)
+        if self.isMousePressed:
+            painter.drawImage(self.downImage.rect(), self.downImage)
+        else:
+            painter.drawImage(self.upImage.rect(), self.upImage)
+        super(MenuButton, self).paintEvent(QPaintEvent)
+
+    def enterEvent(self, *args, **kwargs):
+        self.isMouseEntered = True
+        self.updateMenuStatus()
+
+    def leaveEvent(self, *args, **kwargs):
+        self.isMouseEntered = False
+        self.updateMenuStatus()
+
+    def mousePressEvent(self, *args, **kwargs):
+        self.isMousePressed = True
+        self.updateMenuStatus()
+
+    def mouseReleaseEvent(self, *args, **kwargs):
+        self.isMousePressed = False
+        self.updateMenuStatus()
+
+    def focusInEvent(self, QFocusEvent):
+        self.isFocusIn= True
+        self.updateMenuStatus()
+
+    def focusOutEvent(self, QFocusEvent):
+        self.isFocusIn = False
+        self.updateMenuStatus()
+
+    def setOutMenuFocusStatus(self, status):
+        self.isOutMenuFocusIn = status
+        self.updateMenuStatus()
+
+    def updateMenuStatus(self):
+        pass
 
 if __name__ == "__main__":
     App = QtGui.QApplication(sys.argv)
