@@ -2,6 +2,7 @@
 from PyQt4 import QtGui, QtCore, Qt
 from BodyLayer import *
 import json, os, sys
+from Tools import *
 class MainUI(QtGui.QWidget):
 
     MAX_SIZE = 1
@@ -17,9 +18,9 @@ class MainUI(QtGui.QWidget):
         self.footer = None
         self.title = None
         self.preInitConfig()
-        self.initConfigInfo()
+        self.config = initConfigInfo()
         self.initUI()
-
+        self.loadFile(self.config["fileName"])
     def initUI(self):
         self.setFixedSize(self.config["mainUi"]["width"], self.config["mainUi"]["height"])
         self.createBody()
@@ -87,11 +88,6 @@ class MainUI(QtGui.QWidget):
         json.dump(self.config, f, indent=4)
         f.close()
 
-    def initConfigInfo(self):
-        f = open("config.json", "r")
-        self.config = json.load(f)
-        f.close()
-
     def paintEvent(self, QPaintEvent):
         painter = QtGui.QPainter(self)
         color = QtGui.QColor(self.config["mainUi"]["background-color"][0],\
@@ -102,15 +98,14 @@ class MainUI(QtGui.QWidget):
 
     def createHeader(self):
         self.header = Header(self.config["mainUi"]["head"], self)
-        self.header.setTitile(self.title)
     def createBody(self):
         self.body = Body(self.config["mainUi"]["body"], self)
-
     def createFooter(self):
         self.footer = Foot(self.config["mainUi"]["head"], self)
-
     def createMenu(self):
         self.menu = Menu(self.config["mainUi"]["menu"], self)
+        self.menu.hide()
+
 
     def changeAppSize(self, sizeType):
         if sizeType == self.MAX_SIZE:
@@ -134,10 +129,18 @@ class MainUI(QtGui.QWidget):
         elif key == QtCore.Qt.Key_Right:
             self.body.body.nextPage()
 
-    def setTitle(self, title):
-        self.title = title
+    def loadFile(self, fileName):
+        self.fileName = fileName
+        self.setFileName(self.fileName)
+        self.setFileContent(self.fileName)
+
+    def setFileName(self, fileName):
+        self.fileName = fileName
         if self.header != None:
-            self.header.setTitle(title)
+            self.header.setFileName(fileName)
+
+    def setFileContent(self, fileName):
+        pass
 
     def showMenu(self, status=True):
         if status:
@@ -145,7 +148,15 @@ class MainUI(QtGui.QWidget):
         else:
             self.menu.hide()
 
+    def resetProperties(self, types):
+        #TODO: 这一个目前还不是太明朗，嗯嗯，先写其他的，以后再补上这一个。
+        pass
+
+    def closeApp(self):
+        App.quit()
+
 class Header(QtGui.QWidget):
+    #TODO: 实现showMenu信号的发送
     def __init__(self, j = None, parent = None):
         super(Header, self).__init__(parent)
         self.config = j
@@ -154,17 +165,21 @@ class Header(QtGui.QWidget):
     def initUi(self):
         self.setFixedSize(self.config["width"], self.config["height"])
         self.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
+        self.originPos = None
+        self.isPressed = False
+        self.progress = 1.0
         layout = QtGui.QHBoxLayout(self)
         self.titleLabel = QtGui.QLabel()
         self.titleLabel.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
+        self.titleLabel.hide()
         layout.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTop)
         layout.setMargin(0)
         layout.setSpacing(0)
         layout.addWidget(self.titleLabel)
         self.setLayout(layout)
         self.closeButton = CloseButton(self.config["closeButton"], self)
-        #self.menuButton = MenuButton(self.config["settingButton"], self)
-        self.closeButton.clicked.connect(App.quit)
+        self.menuButton = MenuButton(self.config["settingButton"], self)
+        self.closeButton.clicked.connect(self.parent().closeApp)
 
     def paintEvent(self, QPaintEvent):
         painter = QtGui.QPainter(self)
@@ -174,8 +189,27 @@ class Header(QtGui.QWidget):
             self.config["background-color"][3])
         painter.fillRect(self.rect(), color)
 
-    originPos = None
-    isPressed = False
+        if self.title:
+            print("run to here")
+            #TODO: this need to e simplified
+            font = self.font()
+            font.setPointSize(20)
+            self.setFont(font)
+            metrix = QtGui.QFontMetrics(font)
+            length = metrix.width(self.title)
+            if length > self.rect().width():
+                x = int((self.rect().width() - 100) / (length / len(self.title)))
+                self.title = self.title[0:x]
+            pen = QtGui.QPen(QtGui.QColor(255, 0, 0))
+            pen.setWidth(40)
+            painter.setPen(pen)
+            print(self.title)
+            painter.drawText(QtCore.QPoint(25, 25), self.title)
+
+        #draw the progress bar
+        if self.progress:
+            painter.fillRect(0, 0, self.progress*self.rect().width(), 2, QtCore.Qt.blue)
+
     def mousePressEvent(self, QMouseEvent):
         self.isPressed = True
         self.setCursor(QtCore.Qt.SizeAllCursor)
@@ -183,6 +217,7 @@ class Header(QtGui.QWidget):
         print("mousePressed")
 
     def mouseReleaseEvent(self, QMouseEvent):
+        print("run to here")
         self.isPressed = False
         self.setCursor(QtCore.Qt.ArrowCursor)
         print("mouseRelease")
@@ -191,8 +226,9 @@ class Header(QtGui.QWidget):
         if self.isPressed:
             self.parent().move(QMouseEvent.globalPos() - self.originPos)
 
-    def setTitile(self, title=""):
-        self.title = "<h1 style='font-color:black;text-align:center;margin:0 auto;'>" + title + "</h1>"
+    def setFileName(self, title=""):
+        #self.title = "<h1 style='font-color:black;text-align:center;margin:0 auto;'>" + title + "</h1>"
+        self.title = title
         self.titleLabel.setText(self.title)
 
 class Body(QtGui.QWidget):

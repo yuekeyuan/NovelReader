@@ -1,4 +1,5 @@
 from PyQt4 import QtCore, QtGui
+from ProgressBar import ProgressBar
 import threading
 
 class FileReaderInterface():
@@ -35,7 +36,7 @@ class TextLayer(QtGui.QTextBrowser, FileReaderInterface):
 
     def initUi(self, fileName):
         file = open(fileName, encoding="utf-8")
-        print(self.parent().parent().setTitle(fileName))
+        print(self.parent().parent().setFileName(fileName))
         a = file.readlines()
         string = ""
         for i in a:
@@ -104,17 +105,13 @@ class MaskLayer(QtGui.QWidget):
 
     def initUi(self):
         self.setFixedSize(self.config["width"], self.config["height"])
+        self.progressBar = ProgressBar(self)
         self.setMouseTracking(True)
 
     def paintEvent(self, QPaintEvent):
         painter = QtGui.QPainter(self)
         color   = QtGui.QColor(0, 0, 0, 1)
         painter.fillRect(self.rect(), color)
-
-        #if self.entered and self.horizon:
-        #    painter.drawImage(self.config["width"]-self.rightImage.width(), self.config["height"]/2 - self.rightImage.height() / 2, self.rightImage)
-        #elif self.entered and self.horizon == 0:
-        #    painter.drawImage(0, self.config["height"]/2 - self.leftImage.height() / 2, self.leftImage)
 
     def enterEvent(self, QEvent):
         self.entered = 1
